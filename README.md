@@ -33,7 +33,7 @@ Most recon tools hand you a raw list of hostnames. 0x41 Recon collects a domain'
 Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/<your-username>/0x41-recon.git
+git clone https://github.com/0x41io/0x41-recon.git
 cd 0x41-recon
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
