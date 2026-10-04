@@ -15,10 +15,10 @@ import sys
 from datetime import datetime
 
 from collectors import certspotter, crtsh
-
+import history
 BANNER = r"""
  ██████╗ ██╗  ██╗██╗  ██╗ ██╗
-██╔═████╗╚██╗██╔╝██║  ██║███║   0x41 Recon  v0.1
+██╔═████╗╚██╗██╔╝██║  ██║███║   0x41 Recon  v0.2
 ██║██╔██║ ╚███╔╝ ███████║╚██║
 ████╔╝██║ ██╔██╗ ╚════██║ ██║   passive OSINT
 ╚██████╔╝██╔╝ ██╗     ██║ ██║
@@ -76,6 +76,23 @@ def main() -> int:
     for sub in all_subs:
         print(f"    {sub}")
 
+    # Change detection: compare with the last scan of this domain, then save this one
+    previous = history.load_last(domain)
+    saved_path = history.save(domain, all_subs)
+    if previous is None:
+        print(f"\n[*] First scan of {domain} - saved as baseline ({saved_path})")
+    else:
+        changes = history.compare(previous, all_subs)
+        results["changes"] = changes
+        print(f"\n[*] Changes since last scan ({changes['previous_scan']}):")
+        if not changes["added"] and not changes["removed"]:
+            print("    No changes.")
+        for sub in changes["added"]:
+            print(f"    [NEW]  {sub}")
+        for sub in changes["removed"]:
+            print(f"    [GONE] {sub}")
+        if results["errors"] and changes["removed"]:
+            print("    [!] A source failed this run, so GONE hosts may just be missing data.")
     if args.ai:
         print("\n[*] Asking Claude to analyze the results...")
         try:
