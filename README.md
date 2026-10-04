@@ -18,7 +18,7 @@ Most recon tools hand you a raw list of hostnames. 0x41 Recon collects a domain'
 ---
 
 ## Features
-
+Change detection: each scan is saved and compared with the last one, flagging new and removed hostnames.
 - **Subdomain discovery** from Certificate Transparency logs via two sources:
   - [crt.sh](https://crt.sh) (broadest coverage, includes expired certificates)
   - [Cert Spotter](https://sslmate.com/certspotter/) (currently valid certificates, more reliable)
