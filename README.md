@@ -24,6 +24,7 @@ Change detection: each scan is saved and compared with the last one, flagging ne
   - [Cert Spotter](https://sslmate.com/certspotter/) (currently valid certificates, more reliable)
 - **Automatic fallback:** if one source is down, the scan continues with the other
 - **Merged, de-duplicated results**
+- **Change detection:** every scan is saved and compared with the last one, flagging new and removed hostnames
 - **AI analysis (optional):** Claude groups hosts by purpose, flags names worth reviewing (High / Medium / Low), suggests defensive steps, and states the limits of the data
 - **Saved reports:** each AI analysis is written to `reports/<domain>_<timestamp>.md`
 - **JSON export** for use in other tools
