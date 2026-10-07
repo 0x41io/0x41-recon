@@ -67,6 +67,9 @@ python monomi.py example.com --ai
 
 # Save raw results as JSON
 python monomi.py example.com --json results.json
+
+# Plain output, no colors (also honors the NO_COLOR env var)
+python monomi.py example.com --no-color
 ```
 
 ### Example output
@@ -115,6 +118,7 @@ monomi/
 ├── monomi.py             # CLI entry point
 ├── analysis.py           # Claude analysis layer
 ├── history.py            # scan history + change detection
+├── ui.py                 # colored banner + terminal output
 ├── collectors/
 │   ├── crtsh.py          # crt.sh collector (with retries)
 │   └── certspotter.py    # Cert Spotter collector (with pagination)

@@ -14,17 +14,10 @@ import re
 import sys
 from datetime import datetime
 
-from collectors import VERSION, certspotter, crtsh
+from collectors import certspotter, crtsh
 import history
-
-BANNER = rf"""
- ██████╗ ██╗  ██╗██╗  ██╗ ██╗
-██╔═████╗╚██╗██╔╝██║  ██║███║   mønømi  v{VERSION}
-██║██╔██║ ╚███╔╝ ███████║╚██║
-████╔╝██║ ██╔██╗ ╚════██║ ██║   passive OSINT
-╚██████╔╝██╔╝ ██╗     ██║ ██║
- ╚═════╝ ╚═╝  ╚═╝     ╚═╝ ╚═╝
-"""
+import ui
+from ui import fail, good, info, warn
 
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 
@@ -40,40 +33,44 @@ def clean_domain(raw: str) -> str:
 
 
 def main() -> int:
-    print(BANNER)
     parser = argparse.ArgumentParser(description="0x41 / monomi - passive domain recon")
     parser.add_argument("domain", help="target domain, e.g. example.com")
     parser.add_argument("--json", metavar="FILE", help="save raw results to a JSON file")
     parser.add_argument("--ai", action="store_true", help="have Claude write a summary report (needs ANTHROPIC_API_KEY)")
+    parser.add_argument("--no-color", action="store_true", help="plain output (also respects NO_COLOR)")
     args = parser.parse_args()
+    if args.no_color:
+        ui.disable()
+    print(ui.banner())
 
     try:
         domain = clean_domain(args.domain)
     except ValueError as e:
-        print(f"[x] {e}")
+        fail(str(e))
         return 1
 
     results = {"target": domain, "sources": {}, "errors": {}}
-    print(f"[*] Target: {domain}")
+    info(f"Target: {ui.paint(domain, ui.BOLD, ui.WHITE)}")
 
     # Certificate Transparency: try both sources, merge whatever succeeds
     for name, module in [("crt.sh", crtsh), ("Cert Spotter", certspotter)]:
-        print(f"[*] Querying certificate transparency logs ({name})...")
+        info(f"Querying certificate transparency logs ({name})...")
         try:
             r = module.collect(domain)
             results["sources"][r["source"]] = r
-            print(f"[+] {name}: {r['certificates_seen']} certificates -> {r['subdomain_count']} hostnames")
+            good(f"{name}: {r['certificates_seen']} certificates -> {r['subdomain_count']} hostnames")
         except RuntimeError as e:
             results["errors"][name] = str(e)
-            print(f"[!] {name} unavailable: {e}")
+            warn(f"{name} unavailable: {e}")
 
     if not results["sources"]:
-        print("[x] All certificate sources failed. They're free services - try again in a few minutes.")
+        fail("All certificate sources failed. They're free services - try again in a few minutes.")
         return 1
 
     all_subs = sorted({s for r in results["sources"].values() for s in r["subdomains"]})
     results["subdomains"] = all_subs
-    print(f"\n[+] {len(all_subs)} unique hostnames total:\n")
+    print()
+    good(f"{ui.paint(str(len(all_subs)), ui.BOLD, ui.RED)} unique hostnames total:\n")
     for sub in all_subs:
         print(f"    {sub}")
 
@@ -81,26 +78,29 @@ def main() -> int:
     previous = history.load_last(domain)
     saved_path = history.save(domain, all_subs)
     if previous is None:
-        print(f"\n[*] First scan of {domain} - saved as baseline ({saved_path})")
+        print()
+        info(f"First scan of {domain} - saved as baseline ({saved_path})")
     else:
         changes = history.compare(previous, all_subs)
         results["changes"] = changes
-        print(f"\n[*] Changes since last scan ({changes['previous_scan']}):")
+        print()
+        info(f"Changes since last scan ({changes['previous_scan']}):")
         if not changes["added"] and not changes["removed"]:
             print("    No changes.")
         for sub in changes["added"]:
-            print(f"    [NEW]  {sub}")
+            print(f"    {ui.paint('[NEW] ', ui.GREEN)} {sub}")
         for sub in changes["removed"]:
-            print(f"    [GONE] {sub}")
+            print(f"    {ui.paint('[GONE]', ui.RED)} {sub}")
         if results["errors"] and changes["removed"]:
-            print("    [!] A source failed this run, so GONE hosts may just be missing data.")
+            print(f"    {ui.paint('[!]', ui.YELLOW)} A source failed this run, so GONE hosts may just be missing data.")
     if args.ai:
-        print("\n[*] Asking Claude to analyze the results...")
+        print()
+        info("Asking Claude to analyze the results...")
         try:
             import analysis
             summary, model = analysis.summarize(results)
         except Exception as e:  # missing key, network, API errors
-            print(f"[x] AI summary failed: {e}")
+            fail(f"AI summary failed: {e}")
         else:
             os.makedirs("reports", exist_ok=True)
             stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
@@ -114,12 +114,14 @@ def main() -> int:
             with open(path, "w") as f:
                 f.write(header + summary + "\n")
             print("\n" + summary)
-            print(f"\n[+] Report saved to {path}")
+            print()
+            good(f"Report saved to {path}")
 
     if args.json:
         with open(args.json, "w") as f:
             json.dump(results, f, indent=2)
-        print(f"\n[+] Saved results to {args.json}")
+        print()
+        good(f"Saved results to {args.json}")
 
     return 0
 
