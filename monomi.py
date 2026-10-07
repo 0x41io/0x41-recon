@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-0x41 Recon - passive domain reconnaissance with AI synthesis.
+0x41 / monomi - passive domain reconnaissance with AI synthesis.
 
 Usage:
-    python recon.py example.com
-    python recon.py example.com --json results.json
+    python monomi.py example.com
+    python monomi.py example.com --json results.json
 """
 
 import argparse
@@ -14,11 +14,12 @@ import re
 import sys
 from datetime import datetime
 
-from collectors import certspotter, crtsh
+from collectors import VERSION, certspotter, crtsh
 import history
-BANNER = r"""
+
+BANNER = rf"""
  ██████╗ ██╗  ██╗██╗  ██╗ ██╗
-██╔═████╗╚██╗██╔╝██║  ██║███║   0x41 Recon  v0.2
+██╔═████╗╚██╗██╔╝██║  ██║███║   mønømi  v{VERSION}
 ██║██╔██║ ╚███╔╝ ███████║╚██║
 ████╔╝██║ ██╔██╗ ╚════██║ ██║   passive OSINT
 ╚██████╔╝██╔╝ ██╗     ██║ ██║
@@ -40,7 +41,7 @@ def clean_domain(raw: str) -> str:
 
 def main() -> int:
     print(BANNER)
-    parser = argparse.ArgumentParser(description="0x41 Recon - passive domain recon")
+    parser = argparse.ArgumentParser(description="0x41 / monomi - passive domain recon")
     parser.add_argument("domain", help="target domain, e.g. example.com")
     parser.add_argument("--json", metavar="FILE", help="save raw results to a JSON file")
     parser.add_argument("--ai", action="store_true", help="have Claude write a summary report (needs ANTHROPIC_API_KEY)")
@@ -105,7 +106,7 @@ def main() -> int:
             stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
             path = os.path.join("reports", f"{domain}_{stamp}.md")
             header = (
-                f"# 0x41 Recon Report: {domain}\n\n"
+                f"# mønømi report: {domain}\n\n"
                 f"*Generated {datetime.now():%Y-%m-%d %H:%M} · "
                 f"sources: {', '.join(results['sources'])} · "
                 f"{len(all_subs)} hostnames · model: {model}*\n\n"

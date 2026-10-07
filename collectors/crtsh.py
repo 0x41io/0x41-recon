@@ -13,7 +13,7 @@ import time
 import requests
 
 CRTSH_URL = "https://crt.sh/"
-USER_AGENT = "0x41-recon/0.1 (passive OSINT research)"
+from collectors import USER_AGENT
 
 
 def fetch_raw(domain: str, retries: int = 3, timeout: int = 60) -> list[dict]:

@@ -1,4 +1,4 @@
-# 0x41 Recon
+# mønømi
 
 ```
  ██████╗ ██╗  ██╗██╗  ██╗ ██╗
@@ -6,19 +6,18 @@
 ██║██╔██║ ╚███╔╝ ███████║╚██║
 ████╔╝██║ ██╔██╗ ╚════██║ ██║
 ╚██████╔╝██╔╝ ██╗     ██║ ██║
- ╚═════╝ ╚═╝  ╚═╝     ╚═╝ ╚═╝
+ ╚═════╝ ╚═╝  ╚═╝     ╚═╝ ╚═╝   mønømi
 ```
 
-**Passive domain reconnaissance with AI-written analysis.**
+**monomi** by 0x41: **passive domain reconnaissance with AI-written analysis.**
 
-Most recon tools hand you a raw list of hostnames. 0x41 Recon collects a domain's public footprint and then has Claude explain it in plain English: how the infrastructure is organized, what deserves a closer look, and what the owner can do about it.
+Most recon tools hand you a raw list of hostnames. Monomi collects a domain's public footprint and then has Claude explain it in plain English: how the infrastructure is organized, what deserves a closer look, and what the owner can do about it.
 
-> ⚠️ **Authorized use only.** 0x41 Recon is fully passive: it reads public Certificate Transparency logs and never sends traffic to the target. Even so, only assess domains you own or have permission to review.
+> ⚠️ **Authorized use only.** Monomi is fully passive: it reads public Certificate Transparency logs and never sends traffic to the target. Even so, only assess domains you own or have permission to review.
 
 ---
 
 ## Features
-Change detection: each scan is saved and compared with the last one, flagging new and removed hostnames.
 - **Subdomain discovery** from Certificate Transparency logs via two sources:
   - [crt.sh](https://crt.sh) (broadest coverage, includes expired certificates)
   - [Cert Spotter](https://sslmate.com/certspotter/) (currently valid certificates, more reliable)
@@ -34,8 +33,8 @@ Change detection: each scan is saved and compared with the last one, flagging ne
 Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/0x41io/0x41-recon.git
-cd 0x41-recon
+git clone https://github.com/0x41io/monomi.git
+cd monomi
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -61,13 +60,13 @@ export CLAUDE_MODEL="model-id-here"
 
 ```bash
 # Subdomain discovery only (no API key needed)
-python recon.py example.com
+python monomi.py example.com
 
 # With AI analysis + saved Markdown report
-python recon.py example.com --ai
+python monomi.py example.com --ai
 
 # Save raw results as JSON
-python recon.py example.com --json results.json
+python monomi.py example.com --json results.json
 ```
 
 ### Example output
@@ -112,12 +111,14 @@ Certificate Transparency (CT) is a public log of every TLS certificate issued by
 ## Project structure
 
 ```
-0x41-recon/
-├── recon.py              # CLI entry point
+monomi/
+├── monomi.py             # CLI entry point
 ├── analysis.py           # Claude analysis layer
+├── history.py            # scan history + change detection
 ├── collectors/
 │   ├── crtsh.py          # crt.sh collector (with retries)
 │   └── certspotter.py    # Cert Spotter collector (with pagination)
+├── scans/                # saved scans per domain (git-ignored)
 ├── reports/              # generated reports (git-ignored)
 └── requirements.txt
 ```
@@ -133,7 +134,7 @@ Certificate Transparency (CT) is a public log of every TLS certificate issued by
 
 - [ ] Liveness checks for discovered hosts
 - [ ] Scheduled monitoring with alerts on new hostnames
-- [ ] Installable package (`pip install 0x41-recon`)
+- [ ] Installable package (`pip install monomi`)
 - [ ] Web interface
 
 ## License

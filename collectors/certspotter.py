@@ -10,7 +10,7 @@ crt.sh, but it's much more reliable. Still 100% passive.
 import requests
 
 API_URL = "https://api.certspotter.com/v1/issuances"
-USER_AGENT = "0x41-recon/0.1 (passive OSINT research)"
+from collectors import USER_AGENT
 MAX_PAGES = 5  # be gentle with the free tier (no API key)
 
 
