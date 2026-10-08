@@ -36,6 +36,13 @@ reviewing (internal addresses published in public DNS reveal network layout), \
 and note that CT-listed hosts with no DNS record are likely retired or stale.
 - In Limitations, note that DNS reflects one point in time from one resolver.
 
+Formatting rules (the report is rendered in a terminal):
+- Start directly with "## 1. Overview". No title line above it.
+- Use "## " for the five section headings.
+- In section 3, group findings under these exact sub-headings, each on its \
+own line: "### High", "### Medium", "### Low". Leave out a level if it has \
+no findings.
+
 Do not invent facts beyond the data. Hedge inferences ("suggests", "likely").
 Be concise: aim for about 600-900 words total. Summarize large repetitive \
 groups (e.g. many regional clusters) in one line instead of listing every host."""

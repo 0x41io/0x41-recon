@@ -167,7 +167,13 @@ def provider_bars(providers: dict, total: int, width: int = 24, top: int = 8, in
 
 import re as _re
 
-_PRIORITY = _re.compile(r"^#{1,6}\s*\**\s*(High|Medium|Low)\b.*$", _re.IGNORECASE | _re.MULTILINE)
+# Matches priority headers however the model writes them:
+#   "### High", "### High priority", "**High**", "**Medium:**", "High priority:"
+_PRIORITY = _re.compile(
+    r"^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*|__)?[ \t]*(High|Medium|Low)(?![A-Za-z-])(?:[ \t]+priority)?"
+    r"[ \t]*:?[ \t]*(?:\*\*|__)?[ \t]*:?[ \t]*$",
+    _re.IGNORECASE | _re.MULTILINE,
+)
 _PRIORITY_STYLE = {"high": "bold white on #c8102e", "medium": "bold black on #ffc83c", "low": "bold black on #78787f"}
 
 
@@ -208,6 +214,9 @@ def render_report(markdown: str) -> None:
         "markdown.table.header": "bold #ff283c",
     })
     console = Console(theme=theme, highlight=False)
+
+    # rich centers top-level "# Title" headings; demote them so everything lines up left
+    markdown = _re.sub(r"^# ", "## ", markdown, flags=_re.MULTILINE)
 
     # Split around High / Medium / Low headings so they can be drawn as badges
     pos = 0
