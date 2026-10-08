@@ -140,7 +140,8 @@ def main() -> int:
             )
             with open(path, "w") as f:
                 f.write(header + summary + "\n")
-            print("\n" + summary)
+            print()
+            ui.render_report(summary)
             print()
             good(f"Report saved to {path}")
 

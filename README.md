@@ -26,6 +26,7 @@ Most recon tools hand you a raw list of hostnames. Monomi collects a domain's pu
 - **Hosting enrichment (`--enrich`):** resolves each host to its IP and looks up the network owner (ASN), provider, and country via Team Cymru's free IP-to-ASN service. Shows a host table, a hosting breakdown chart, and flags hosts that point to private/internal IPs in public DNS
 - **Change detection:** every scan is saved and compared with the last one, flagging new and removed hostnames
 - **AI analysis (optional):** Claude groups hosts by purpose (and by hosting provider when `--enrich` is on), flags names worth reviewing (High / Medium / Low), suggests defensive steps, and states the limits of the data
+- **Formatted terminal reports:** the AI report renders in the terminal with colored headings, real tables, and High / Medium / Low badges (via [rich](https://github.com/Textualize/rich); plain Markdown if rich isn't installed or `--no-color` is set)
 - **Saved reports:** each AI analysis is written to `reports/<domain>_<timestamp>.md`
 - **JSON export** for use in other tools
 

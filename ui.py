@@ -159,3 +159,66 @@ def provider_bars(providers: dict, total: int, width: int = 24, top: int = 8, in
         color = GREY if name == "no DNS record" else YELLOW if name == "PRIVATE IP" else RED
         pct = f"{n / total:4.0%}" if total else ""
         print(f"{indent}{_cell(name, name_w)}  {paint(bar.ljust(width), color)}  {n:>3}  {paint(pct, GREY)}")
+
+
+# ---------------------------------------------------------------------------
+# AI report rendering
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_PRIORITY = _re.compile(r"^#{1,6}\s*\**\s*(High|Medium|Low)\b.*$", _re.IGNORECASE | _re.MULTILINE)
+_PRIORITY_STYLE = {"high": "bold white on #c8102e", "medium": "bold black on #ffc83c", "low": "bold black on #78787f"}
+
+
+def render_report(markdown: str) -> None:
+    """Pretty-print the AI's Markdown report in the terminal.
+
+    Uses the 'rich' library when it's installed (headings in 0x41 red, real
+    tables, bold text, High/Medium/Low as colored badges). Falls back to the
+    raw Markdown when rich is missing or color is off.
+    """
+    try:
+        from rich.console import Console
+        from rich.markdown import Markdown
+        from rich.text import Text
+        from rich.theme import Theme
+    except ImportError:
+        print(markdown)
+        return
+    if not ENABLED:
+        print(markdown)
+        return
+
+    theme = Theme({
+        "markdown.h1": "bold #ff283c",
+        "markdown.h1.border": "#6e0012",
+        "markdown.h2": "bold #ff283c",
+        "markdown.h3": "bold #f0f0f0",
+        "markdown.h4": "bold #f0f0f0",
+        "markdown.strong": "bold #f0f0f0",
+        "markdown.em": "italic #b4b4be",
+        "markdown.code": "#ff8c96",
+        "markdown.item.bullet": "#ff283c",
+        "markdown.item.number": "#ff283c",
+        "markdown.block_quote": "#ffc83c",
+        "markdown.hr": "#6e0012",
+        "markdown.link": "#78b4ff",
+        "markdown.table.border": "#6e0012",
+        "markdown.table.header": "bold #ff283c",
+    })
+    console = Console(theme=theme, highlight=False)
+
+    # Split around High / Medium / Low headings so they can be drawn as badges
+    pos = 0
+    for m in _PRIORITY.finditer(markdown):
+        chunk = markdown[pos:m.start()].strip()
+        if chunk:
+            console.print(Markdown(chunk, code_theme="monokai"))
+        level = m.group(1).lower()
+        console.print()
+        console.print(Text(f" {level.upper()} ", style=_PRIORITY_STYLE[level]))
+        pos = m.end()
+    rest = markdown[pos:].strip()
+    if rest:
+        console.print(Markdown(rest, code_theme="monokai"))
