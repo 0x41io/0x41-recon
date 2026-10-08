@@ -106,22 +106,44 @@ def _cell(text: str, width: int) -> str:
     return text.ljust(width)
 
 
-def host_table(hosts: dict, indent: str = "    ") -> None:
-    """Print enriched hosts as aligned columns: HOST  IP  PROVIDER  CC."""
-    host_w = min(max([len(h) for h in hosts] + [4]), 48)
-    print(indent + paint(f"{'HOST'.ljust(host_w)}  {'IP'.ljust(15)}  {'PROVIDER'.ljust(24)}  CC", GREY))
-    print(indent + paint("─" * (host_w + 15 + 24 + 10), GREY))
-    for host, e in hosts.items():
+def host_table(hosts: dict, indent: str = "    ", show_dead: int = 3) -> None:
+    """Print enriched hosts as aligned columns: HOST  IP  PROVIDER  CC.
+
+    Fits the terminal width. Hosts with no DNS record are listed after the
+    live ones and collapsed to a few examples so they don't flood the screen.
+    """
+    import shutil
+
+    live = {h: e for h, e in hosts.items() if e["ips"]}
+    dead = [h for h, e in hosts.items() if not e["ips"]]
+
+    cols = shutil.get_terminal_size((110, 24)).columns
+    ip_w = 18
+    prov_w = min(max([len(e["provider"] or "") for e in live.values()] + [8]), 20)
+    room = cols - len(indent) - ip_w - prov_w - 2 - 6 - 1  # gaps + CC column
+    host_w = max(20, min(max([len(h) for h in live] + [4]), room))
+
+    def line(h, ip, prov, cc):
+        return f"{_cell(h, host_w)}  {ip}  {prov}  {cc}"
+
+    print(indent + paint(line("HOST", "IP".ljust(ip_w), "PROVIDER".ljust(prov_w), "CC"), GREY))
+    print(indent + paint("─" * (host_w + ip_w + prov_w + 8), GREY))
+    for host, e in live.items():
         ips = e["ips"]
-        ip = ips[0] + (f" +{len(ips) - 1}" if len(ips) > 1 else "") if ips else "-"
-        provider = e["provider"] or "no DNS record"
-        if not ips:
-            row = paint(f"{_cell(host, host_w)}  {'-'.ljust(15)}  {_cell(provider, 24)}  -", GREY)
-        else:
-            prov = _cell(provider, 24)
-            prov = paint(prov, YELLOW, BOLD) if provider == "PRIVATE IP" else paint(prov, WHITE)
-            row = f"{_cell(host, host_w)}  {paint(_cell(ip, 15), GREY)}  {prov}  {e.get('country', '-')}"
-        print(indent + row)
+        ip = ips[0] + (f" +{len(ips) - 1}" if len(ips) > 1 else "")
+        provider = e["provider"]
+        prov = _cell(provider, prov_w)
+        prov = paint(prov, YELLOW, BOLD) if provider == "PRIVATE IP" else paint(prov, WHITE)
+        print(indent + line(host, paint(_cell(ip, ip_w), GREY), prov, e.get("country", "-")))
+
+    if dead:
+        print()
+        shown = dead if len(dead) <= show_dead + 1 else dead[:show_dead]
+        print(indent + paint(f"{len(dead)} host(s) in CT logs have no DNS record (likely retired):", GREY))
+        for h in shown:
+            print(indent + "  " + paint(h, GREY))
+        if len(shown) < len(dead):
+            print(indent + "  " + paint(f"... and {len(dead) - len(shown)} more (full list with --json)", GREY))
 
 
 def provider_bars(providers: dict, total: int, width: int = 24, top: int = 8, indent: str = "    ") -> None:

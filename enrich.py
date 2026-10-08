@@ -48,6 +48,44 @@ def asn_lookup(ips: list[str], timeout: int = 20) -> dict[str, dict]:
     return parse_cymru("".join(c.decode(errors="replace") for c in chunks))
 
 
+# Raw ASN names are noisy ("AMAZON-02, US", "FASTLY - Fastly, Inc., US").
+# Map the big providers to names people recognize.
+KNOWN_PROVIDERS = [
+    ("AMAZON", "AWS"),
+    ("CLOUDFLARE", "Cloudflare"),
+    ("FASTLY", "Fastly"),
+    ("GOOGLE-CLOUD", "Google Cloud"),
+    ("GOOGLE", "Google"),
+    ("MICROSOFT", "Microsoft/Azure"),
+    ("AKAMAI", "Akamai"),
+    ("LINODE", "Akamai/Linode"),
+    ("DIGITALOCEAN", "DigitalOcean"),
+    ("HETZNER", "Hetzner"),
+    ("OVH", "OVH"),
+    ("VULTR", "Vultr"),
+    ("ORACLE", "Oracle Cloud"),
+    ("GITHUB", "GitHub"),
+    ("INCAPSULA", "Imperva"),
+    ("SALESFORCE", "Salesforce"),
+    ("SHOPIFY", "Shopify"),
+    ("SQUARESPACE", "Squarespace"),
+    ("AUTOMATTIC", "WordPress.com"),
+    ("VERCEL", "Vercel"),
+    ("NETLIFY", "Netlify"),
+    ("HUBSPOT", "HubSpot"),
+    ("ZENDESK", "Zendesk"),
+]
+
+
+def friendly_name(as_name: str) -> str:
+    upper = as_name.upper()
+    for key, nice in KNOWN_PROVIDERS:
+        if upper.startswith(key) or f" {key}" in upper:
+            return nice
+    # Fallback: "SOME-ISP - Some ISP Inc., US" -> "SOME-ISP"
+    return as_name.split(" - ")[0].rsplit(",", 1)[0].strip()
+
+
 def parse_cymru(text: str) -> dict[str, dict]:
     """Parse lines like:
     15169   | 8.8.8.8 | 8.8.8.0/24 | US | arin | 2023-12-28 | GOOGLE, US
@@ -60,9 +98,8 @@ def parse_cymru(text: str) -> dict[str, dict]:
         asn, ip, prefix, cc, registry, _, as_name = parts[:7]
         if asn == "NA":
             continue
-        # "AMAZON-02, US" -> "AMAZON-02"
-        name = as_name.rsplit(",", 1)[0].strip() if "," in as_name else as_name
-        out[ip] = {"asn": f"AS{asn}", "as_name": name, "prefix": prefix, "country": cc}
+        out[ip] = {"asn": f"AS{asn}", "as_name": friendly_name(as_name), "raw_as_name": as_name,
+                   "prefix": prefix, "country": cc}
     return out
 
 
