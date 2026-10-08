@@ -15,6 +15,7 @@ import sys
 from datetime import datetime
 
 from collectors import certspotter, crtsh
+import enrich
 import history
 import ui
 from ui import fail, good, info, warn
@@ -37,6 +38,7 @@ def main() -> int:
     parser.add_argument("domain", help="target domain, e.g. example.com")
     parser.add_argument("--json", metavar="FILE", help="save raw results to a JSON file")
     parser.add_argument("--ai", action="store_true", help="have Claude write a summary report (needs ANTHROPIC_API_KEY)")
+    parser.add_argument("--enrich", action="store_true", help="resolve hosts to IPs and look up hosting provider/ASN (sends DNS queries)")
     parser.add_argument("--no-color", action="store_true", help="plain output (also respects NO_COLOR)")
     args = parser.parse_args()
     if args.no_color:
@@ -71,8 +73,32 @@ def main() -> int:
     results["subdomains"] = all_subs
     print()
     good(f"{ui.paint(str(len(all_subs)), ui.BOLD, ui.RED)} unique hostnames total:\n")
-    for sub in all_subs:
-        print(f"    {sub}")
+
+    if args.enrich:
+        info("Resolving hosts and looking up hosting providers...")
+        data = enrich.enrich(all_subs)
+        results["enrichment"] = data
+        if data["asn_error"]:
+            warn(f"{data['asn_error']} (showing IPs without provider info)")
+        print()
+        ui.host_table(data["hosts"])
+        print()
+        good(
+            f"{data['resolved']}/{len(all_subs)} hosts resolve to "
+            f"{data['unique_ips']} unique IPs. Hosting breakdown:\n"
+        )
+        ui.provider_bars(data["providers"], len(all_subs))
+        if data["private_ip_hosts"]:
+            print()
+            warn(
+                f"{len(data['private_ip_hosts'])} host(s) point to private/internal IPs "
+                "in public DNS (leaks internal network layout):"
+            )
+            for h in data["private_ip_hosts"]:
+                print(f"    {ui.paint(h, ui.YELLOW)}  {data['hosts'][h]['ips'][0]}")
+    else:
+        for sub in all_subs:
+            print(f"    {sub}")
 
     # Change detection: compare with the last scan of this domain, then save this one
     previous = history.load_last(domain)
@@ -109,7 +135,8 @@ def main() -> int:
                 f"# mønømi report: {domain}\n\n"
                 f"*Generated {datetime.now():%Y-%m-%d %H:%M} · "
                 f"sources: {', '.join(results['sources'])} · "
-                f"{len(all_subs)} hostnames · model: {model}*\n\n"
+                f"{len(all_subs)} hostnames"
+                f"{' · enriched' if 'enrichment' in results else ''} · model: {model}*\n\n"
             )
             with open(path, "w") as f:
                 f.write(header + summary + "\n")

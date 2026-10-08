@@ -13,7 +13,7 @@
 
 Most recon tools hand you a raw list of hostnames. Monomi collects a domain's public footprint and then has Claude explain it in plain English: how the infrastructure is organized, what deserves a closer look, and what the owner can do about it.
 
-> ⚠️ **Authorized use only.** Monomi is fully passive: it reads public Certificate Transparency logs and never sends traffic to the target. Even so, only assess domains you own or have permission to review.
+> ⚠️ **Authorized use only.** By default Monomi is fully passive: it reads public Certificate Transparency logs and never sends traffic to the target. The optional `--enrich` step adds standard DNS lookups. Even so, only assess domains you own or have permission to review.
 
 ---
 
@@ -23,8 +23,9 @@ Most recon tools hand you a raw list of hostnames. Monomi collects a domain's pu
   - [Cert Spotter](https://sslmate.com/certspotter/) (currently valid certificates, more reliable)
 - **Automatic fallback:** if one source is down, the scan continues with the other
 - **Merged, de-duplicated results**
+- **Hosting enrichment (`--enrich`):** resolves each host to its IP and looks up the network owner (ASN), provider, and country via Team Cymru's free IP-to-ASN service. Shows a host table, a hosting breakdown chart, and flags hosts that point to private/internal IPs in public DNS
 - **Change detection:** every scan is saved and compared with the last one, flagging new and removed hostnames
-- **AI analysis (optional):** Claude groups hosts by purpose, flags names worth reviewing (High / Medium / Low), suggests defensive steps, and states the limits of the data
+- **AI analysis (optional):** Claude groups hosts by purpose (and by hosting provider when `--enrich` is on), flags names worth reviewing (High / Medium / Low), suggests defensive steps, and states the limits of the data
 - **Saved reports:** each AI analysis is written to `reports/<domain>_<timestamp>.md`
 - **JSON export** for use in other tools
 
@@ -61,6 +62,9 @@ export CLAUDE_MODEL="model-id-here"
 ```bash
 # Subdomain discovery only (no API key needed)
 python monomi.py example.com
+
+# Add IPs, hosting provider/ASN, and country for each host
+python monomi.py example.com --enrich
 
 # With AI analysis + saved Markdown report
 python monomi.py example.com --ai
@@ -117,6 +121,7 @@ Certificate Transparency (CT) is a public log of every TLS certificate issued by
 monomi/
 ├── monomi.py             # CLI entry point
 ├── analysis.py           # Claude analysis layer
+├── enrich.py             # DNS + ASN/provider enrichment
 ├── history.py            # scan history + change detection
 ├── ui.py                 # colored banner + terminal output
 ├── collectors/
@@ -130,12 +135,13 @@ monomi/
 ## Limitations
 
 - CT logs only show hosts that have had TLS certificates; hosts behind wildcard certificates or without TLS won't appear.
-- A hostname appearing in CT logs doesn't mean it's currently live.
+- A hostname appearing in CT logs doesn't mean it's currently live. `--enrich` shows which ones still have DNS records, but a DNS record doesn't prove a server is up.
 - AI analysis is based on hostnames alone. Treat its findings as leads to verify, not confirmed issues.
 - crt.sh and Cert Spotter are free services and are sometimes slow or rate-limited.
 
 ## Roadmap
 
+- [x] DNS + hosting provider enrichment
 - [ ] Liveness checks for discovered hosts
 - [ ] Scheduled monitoring with alerts on new hostnames
 - [ ] Installable package (`pip install monomi`)

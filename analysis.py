@@ -27,6 +27,15 @@ why each matters in one line. Prioritize: High / Medium / Low.
 5. **Limitations**: this data comes only from public certificate logs; it \
 does not confirm which hosts are live, and names alone don't prove a problem.
 
+If the data includes "enrichment" (DNS + hosting provider per host), also:
+- In section 2, describe where things are hosted (providers/ASNs, countries) \
+and anything notable, like a sensitive-sounding host sitting on a different \
+provider than the rest, or self-hosted ranges next to cloud/CDN.
+- In section 3, treat hosts resolving to private/internal IPs as worth \
+reviewing (internal addresses published in public DNS reveal network layout), \
+and note that CT-listed hosts with no DNS record are likely retired or stale.
+- In Limitations, note that DNS reflects one point in time from one resolver.
+
 Do not invent facts beyond the data. Hedge inferences ("suggests", "likely").
 Be concise: aim for about 600-900 words total. Summarize large repetitive \
 groups (e.g. many regional clusters) in one line instead of listing every host."""
@@ -61,6 +70,24 @@ def summarize(results: dict) -> tuple[str, str]:
         "hostnames": hosts[:MAX_HOSTS],
         "truncated": len(hosts) > MAX_HOSTS,
     }
+    enr = results.get("enrichment")
+    if enr:
+        payload["hostnames"] = [
+            {
+                "host": h,
+                "ips": enr["hosts"][h]["ips"],
+                "provider": enr["hosts"][h]["provider"] or "no DNS record",
+                "asn": enr["hosts"][h].get("asn"),
+                "country": enr["hosts"][h].get("country"),
+            }
+            for h in hosts[:MAX_HOSTS]
+        ]
+        payload["enrichment"] = {
+            "resolved": enr["resolved"],
+            "unique_ips": enr["unique_ips"],
+            "providers": enr["providers"],
+            "private_ip_hosts": enr["private_ip_hosts"],
+        }
 
     msg = client.messages.create(
         model=model,

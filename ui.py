@@ -99,3 +99,41 @@ def warn(msg: str) -> None:
 
 def fail(msg: str) -> None:
     print(f"{paint('[x]', BOLD, RED)} {msg}")
+
+
+def _cell(text: str, width: int) -> str:
+    text = text if len(text) <= width else text[: width - 1] + "…"
+    return text.ljust(width)
+
+
+def host_table(hosts: dict, indent: str = "    ") -> None:
+    """Print enriched hosts as aligned columns: HOST  IP  PROVIDER  CC."""
+    host_w = min(max([len(h) for h in hosts] + [4]), 48)
+    print(indent + paint(f"{'HOST'.ljust(host_w)}  {'IP'.ljust(15)}  {'PROVIDER'.ljust(24)}  CC", GREY))
+    print(indent + paint("─" * (host_w + 15 + 24 + 10), GREY))
+    for host, e in hosts.items():
+        ips = e["ips"]
+        ip = ips[0] + (f" +{len(ips) - 1}" if len(ips) > 1 else "") if ips else "-"
+        provider = e["provider"] or "no DNS record"
+        if not ips:
+            row = paint(f"{_cell(host, host_w)}  {'-'.ljust(15)}  {_cell(provider, 24)}  -", GREY)
+        else:
+            prov = _cell(provider, 24)
+            prov = paint(prov, YELLOW, BOLD) if provider == "PRIVATE IP" else paint(prov, WHITE)
+            row = f"{_cell(host, host_w)}  {paint(_cell(ip, 15), GREY)}  {prov}  {e.get('country', '-')}"
+        print(indent + row)
+
+
+def provider_bars(providers: dict, total: int, width: int = 24, top: int = 8, indent: str = "    ") -> None:
+    """Small horizontal bar chart of hosts per provider."""
+    items = list(providers.items())
+    if len(items) > top:
+        rest = sum(n for _, n in items[top:])
+        items = items[:top] + [(f"{len(providers) - top} others", rest)]
+    name_w = min(max(len(n) for n, _ in items), 26)
+    biggest = max(n for _, n in items)
+    for name, n in items:
+        bar = "█" * max(1, round(n / biggest * width))
+        color = GREY if name == "no DNS record" else YELLOW if name == "PRIVATE IP" else RED
+        pct = f"{n / total:4.0%}" if total else ""
+        print(f"{indent}{_cell(name, name_w)}  {paint(bar.ljust(width), color)}  {n:>3}  {paint(pct, GREY)}")
