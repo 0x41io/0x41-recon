@@ -174,7 +174,7 @@ _PRIORITY = _re.compile(
     r"[ \t]*:?[ \t]*(?:\*\*|__)?[ \t]*:?[ \t]*$",
     _re.IGNORECASE | _re.MULTILINE,
 )
-_PRIORITY_STYLE = {"high": "bold white on #c8102e", "medium": "bold black on #ffc83c", "low": "bold black on #78787f"}
+_PRIORITY_STYLE = {"high": "bold #ffffff on #c8102e", "medium": "bold #0c0c0c on #ffc83c", "low": "bold #ffffff on #5a5a64"}
 
 
 def render_report(markdown: str) -> None:
